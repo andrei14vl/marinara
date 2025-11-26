@@ -143,20 +143,6 @@ export class CompletionHandler {
       console.log('[DEBUG][CompletionHandler] Closing completion tab:', { tabId: completionTabId });
       await chrome.tabs.remove(completionTabId);
     }
-
-    /*
-    const tabs = await chrome.tabs.query({ url: chrome.runtime.getURL('phaseComplete.html') });
-    console.log('[DEBUG][CompletionHandler] closeCompletionPages:', {
-      timestamp: new Date().toISOString(),
-      tabsFound: tabs.length,
-      tabIds: tabs.map(t => t.id)
-    });
-    
-    for (const tab of tabs) {
-      console.log('[DEBUG][CompletionHandler] Closing completion tab:', { tabId: tab.id });
-      await chrome.tabs.remove(tab.id!);
-    }
-    */
   }
 
   private async openCompletionPage(): Promise<void> {
