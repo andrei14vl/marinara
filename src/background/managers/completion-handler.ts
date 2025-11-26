@@ -4,6 +4,8 @@ import { addCompletedSession } from '../core/pomodoro-history';
 import { settingsManager } from './settings-manager';
 import { debugLogger } from '../services/debug-logger';
 
+const COMPLETION_PAGE_TAB_ID_KEY = 'completion_page_tab_id';
+
 export class CompletionHandler {
   private lastState: TimerState | null = null;
 
@@ -134,6 +136,15 @@ export class CompletionHandler {
   }
 
   private async closeCompletionPages(): Promise<void> {
+    // actually close only the last one
+    const completionTabId = await this.getAndClearCompletionPageTabId()
+
+    if (completionTabId) {
+      console.log('[DEBUG][CompletionHandler] Closing completion tab:', { tabId: completionTabId });
+      await chrome.tabs.remove(completionTabId);
+    }
+
+    /*
     const tabs = await chrome.tabs.query({ url: chrome.runtime.getURL('phaseComplete.html') });
     console.log('[DEBUG][CompletionHandler] closeCompletionPages:', {
       timestamp: new Date().toISOString(),
@@ -145,6 +156,7 @@ export class CompletionHandler {
       console.log('[DEBUG][CompletionHandler] Closing completion tab:', { tabId: tab.id });
       await chrome.tabs.remove(tab.id!);
     }
+    */
   }
 
   private async openCompletionPage(): Promise<void> {
@@ -172,6 +184,10 @@ export class CompletionHandler {
         newTabId: newTab.id,
         newTabIndex: newTab.index
       });
+
+      if (typeof newTab.id !== 'undefined') {
+        await this.saveCompletionPageTabId(newTab.id);
+      }
     } catch (error) {
       console.error('[DEBUG][CompletionHandler] Error opening completion page:', error);
       // Fallback to opening without positioning
@@ -184,6 +200,34 @@ export class CompletionHandler {
       });
     }
   }
+
+    public async saveCompletionPageTabId(tabId: number): Promise<void> {
+      try {
+        await chrome.storage.local.set({ [COMPLETION_PAGE_TAB_ID_KEY]: tabId });
+        console.log('[DEBUG][CompletionHandler] Saved Completion Page Tab Id: ', tabId)
+
+      } catch (error) {
+        console.error('Error saving Completion Page Tab ID:', error);
+        throw error;
+      }
+    }
+
+    public async getAndClearCompletionPageTabId(): Promise<number> {
+      try {
+        const result = await chrome.storage.local.get(COMPLETION_PAGE_TAB_ID_KEY);
+        const tabId = result[COMPLETION_PAGE_TAB_ID_KEY];
+
+        console.log('[DEBUG][CompletionHandler] Completion Page Tab Id Retrieved: ', tabId)
+
+
+        await chrome.storage.local.remove(COMPLETION_PAGE_TAB_ID_KEY);
+
+        return tabId;
+      } catch (error) {
+        console.error('Error getting Completion Page Tab ID:', error);
+        throw error;
+      }
+    }
 
   private clearNotifications(): void {
     // Clear any existing pomodoro completion notifications
